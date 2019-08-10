@@ -1,13 +1,12 @@
 import React, { Component } from 'react'
 import { Redirect } from 'react-router-dom'
 import { Form, Icon, Input, Button, message } from 'antd'
+import { connect } from 'react-redux'
 
 import './login.less'
 import logo from '../../assets/images/logo.png'
-import { reqLogin } from '../../api'
-import memoryUtils from '../../utils/memortUtils'
-import storageUtils from '../../utils/storageUtils'
-import { async } from 'q';
+import { login } from '../../redux/actions'
+
 
 /*
  登陆的路由组件
@@ -25,20 +24,9 @@ class Login extends Component {
                 // console.log('提交登录的 ajax 请求',values)
                 //请求登录
                 const { username, password } = values
-                const result = await reqLogin(username, password) // {status:0，data :user}
-                // console.log('请求成功了', response.data)
-                if (result.status === 0) {//登录成功
-                    message.success('登录成功')
-                    //保存 user
-                    const user = result.data
-                    memoryUtils.user = user //保存在内存中
-                    storageUtils.saveUser(user) //保存到 local 中
 
-                    //跳转到管理页面（不需要再回退到登录）
-                    this.props.history.replace('/')
-                } else {
-                    message.error(result.msg)
-                }
+                //调用分发异步的 action 函数=>发登陆的异步请求,有了结果后 更新状态
+                this.props.login(username, password)
 
             } else {
                 console.log('校验失败')
@@ -74,10 +62,12 @@ class Login extends Component {
     render() {
 
         //如果用户已经登录，自动跳转到管理界面
-        const user = memoryUtils.user
+        const user = this.props.user
         if (user && user._id) {
-            return <Redirect to='/' />
+            return <Redirect to='/home' />
         }
+
+        const errorMsg = this.props.user.errorMsg
 
         //得到具有强大功能的 form 对象
         const form = this.props.form
@@ -90,6 +80,7 @@ class Login extends Component {
                     <h1>React 项目：后台管理系统</h1>
                 </header>
                 <section className="login-content">
+                    <div className={user.errorMsg ? 'error-msg show' : 'error-msg'}>{user.errorMsg}</div> 
                     <h2>用户登录</h2>
                     <Form onSubmit={this.handleSubmit} className="login-form">
                         <Form.Item>
@@ -112,7 +103,7 @@ class Login extends Component {
                                         { max: 12, message: '用户名最多 12 位' },
                                         { pattern: /^[a-zA-Z0-9_]+$/, message: '用户名至必须是英文、数字或下划线组成' }
                                     ],
-                                    initialValue: 'admin' //指定初始值
+                                    initialValue: 'dingge' //指定初始值
 
                                 })(
                                     <Input
@@ -175,7 +166,10 @@ class Login extends Component {
 */
 
 const WrapLogin = Form.create()(Login)
-export default WrapLogin
+export default connect(
+    state => ({ user: state.user }),
+    { login }
+)(WrapLogin)
 
 /*
 1.前台表单验证
